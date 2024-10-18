@@ -1,0 +1,31 @@
+button {
+  background-color: transparent;
+  border: thick outset white;
+  border-radius: 1rem;
+}
+
+button:hover {
+  background-color: lightgray;
+}
+
+button:active {
+  background-color: #FFFA;
+  border: thick inset white;
+}
+
+
+.file.panel {
+  border: thick groove gray;
+  border-radius: 1rem;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+
+.inline {
+  position: absolute;
+  background-color: white;
+  border: thick groove gray;
+  max-width: 50vw;
+  overflow: auto;
+}
