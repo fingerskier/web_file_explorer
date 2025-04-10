@@ -63,7 +63,7 @@ function DirectoryTree({ directoryHandle }) {
                 <div>
                   📄 {entry.name}
                   <button onClick={() => handleFileSelection(entry, entry.name, 'view')}>👁</button>
-                  <button onClick={() => handleFileSelection(entry, entry.name, 'edit')}>Edit</button>
+                  <button onClick={() => handleFileSelection(entry, entry.name, 'edit')}>✏️</button>
 
                   {/* Render File component inline below the file name */}
                   {selectedFile === entry && (

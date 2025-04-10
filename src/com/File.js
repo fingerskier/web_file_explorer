@@ -29,7 +29,7 @@ function File({ fileHandle, fileName, mode, onClose }) {
         
         <button onClick={onClose}>❌</button>
       </h3>
-
+      
       {mode === 'view' ? (
         <div>
           <pre>{fileContent}</pre>
@@ -41,10 +41,9 @@ function File({ fileHandle, fileName, mode, onClose }) {
             value={editingContent}
             onChange={(e) => setEditingContent(e.target.value)}
           />
-          <button onClick={handleSaveFile}>Save</button>
+          <button onClick={handleSaveFile}>✔️</button>
         </div>
       )}
-
     </div>
   );
 }
