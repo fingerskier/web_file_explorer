@@ -1,70 +1,68 @@
-# Getting Started with Create React App
+# Web File Explorer
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A Vite + React (with SWC and the React Compiler) playground for exploring the
+local file system using the File System Access API. The UI state is coordinated
+with the URL using [`ygdrassil`](https://www.npmjs.com/package/ygdrassil) so you
+can deep-link directly to the current view.
 
-## Available Scripts
+The app depends on a secure context (HTTPS or `localhost`) and browsers that
+implement the File System Access API. When a directory is selected its contents
+are listed through a small `web-file-api` helper package that wraps the native
+APIs. Selecting a file reveals actions to rename it or request that the
+operating system open it in the default application.
 
-In the project directory, you can run:
+## Getting started
 
-### `npm start`
+```bash
+npm install
+npm run dev
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The dev server runs on [http://localhost:5173](http://localhost:5173) by
+default and will open automatically.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Available scripts
 
-### `npm test`
+| Script | Description |
+| ------ | ----------- |
+| `npm run dev` | Start the Vite development server with React Fast Refresh. |
+| `npm run build` | Produce a production build in the `dist` folder. |
+| `npm run preview` | Serve the production build locally. |
+| `npm run lint` | Lint source files using ESLint (flat config). |
+| `npm run deploy` | Publish the latest build to GitHub Pages (`gh-pages`). |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Architecture notes
 
-### `npm run build`
+- **Framework** – Vite 7 + React 19 using the SWC compiler and the
+  `@ls-stack/vite-plugin-react-compiler` integration for the React Compiler.
+- **State routing** – `ygdrassil` provides declarative view states that map to
+  URL hash parameters so the current screen (welcome, browser, rename) can be
+  linked directly.
+- **File access** – The custom `web-file-api` package (located in
+  `packages/web-file-api`) offers typed helpers for picking directories,
+  enumerating entries, requesting permissions, renaming files, and delegating to
+  the OS for opening a file.
+- **Styling** – Plain CSS modules inside `src/App.css` keep dependencies light
+  while offering a glassmorphism-inspired layout.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Deploying to GitHub Pages
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+The project ships with the `gh-pages` package and a GitHub Actions workflow
+(`.github/workflows/gh-pages.yml`) that builds and publishes the app to the
+`gh-pages` branch. The workflow runs automatically for pushes to the `main`
+branch and can also be triggered manually from the Actions tab.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+You can publish locally at any time with:
 
-### `npm run eject`
+```bash
+npm run deploy
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+This command builds the project and pushes the `dist` folder to the
+`gh-pages` branch using the `gh-pages` CLI.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Browser support
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+This demo requires a Chromium-based browser with the File System Access API
+enabled. Safari and Firefox currently gate the API behind flags or do not expose
+it at all, so functionality may be limited or unavailable there.
