@@ -23,12 +23,23 @@ const STATUS_TONES = {
 };
 
 export default function App() {
-  const [directoryHandle, setDirectoryHandle] = useState(null);
+  const [handleStack, setHandleStack] = useState([]);
   const [entries, setEntries] = useState([]);
   const [selectedName, setSelectedName] = useState(null);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState(false);
   const [isSupported, setIsSupported] = useState(() => isFileSystemAPISupported());
+
+  const directoryHandle = useMemo(() => {
+    if (handleStack.length === 0) {
+      return null;
+    }
+    return handleStack[handleStack.length - 1];
+  }, [handleStack]);
+
+  const breadcrumbs = useMemo(() => {
+    return handleStack.map((handle) => handle.name);
+  }, [handleStack]);
 
   useEffect(() => {
     setIsSupported(isFileSystemAPISupported());
@@ -42,6 +53,7 @@ export default function App() {
     async (handle) => {
       const targetHandle = handle ?? directoryHandle;
       if (!targetHandle) {
+        setEntries([]);
         return;
       }
       try {
@@ -66,6 +78,14 @@ export default function App() {
     [directoryHandle, showStatus]
   );
 
+  useEffect(() => {
+    if (!directoryHandle) {
+      setEntries([]);
+      return;
+    }
+    refreshEntries(directoryHandle);
+  }, [directoryHandle, refreshEntries]);
+
   const handleDirectoryPick = useCallback(async () => {
     if (!isSupported) {
       showStatus("Your browser does not support the File System Access API.", "error");
@@ -74,9 +94,8 @@ export default function App() {
     setBusy(true);
     try {
       const handle = await pickDirectory();
-      setDirectoryHandle(handle);
+      setHandleStack([handle]);
       setSelectedName(null);
-      await refreshEntries(handle);
       showStatus(`Loaded “${handle.name}”.`, "success");
       return handle;
     } catch (error) {
@@ -109,6 +128,41 @@ export default function App() {
     return Boolean(directoryHandle?.renameEntry || directoryHandle?.move);
   }, [directoryHandle]);
 
+  const handleEnterDirectory = useCallback(
+    (childHandle) => {
+      if (!childHandle) {
+        return;
+      }
+      setHandleStack((stack) => [...stack, childHandle]);
+      setSelectedName(null);
+      showStatus(`Opened “${childHandle.name}”.`, "info");
+    },
+    [setHandleStack, setSelectedName, showStatus]
+  );
+
+  const handleNavigateUp = useCallback(() => {
+    let parentName = null;
+    setHandleStack((stack) => {
+      if (stack.length <= 1) {
+        return stack;
+      }
+      const nextStack = stack.slice(0, -1);
+      parentName = nextStack[nextStack.length - 1]?.name ?? null;
+      return nextStack;
+    });
+    setSelectedName(null);
+    if (parentName) {
+      showStatus(`Opened “${parentName}”.`, "info");
+    }
+  }, [setHandleStack, setSelectedName, showStatus]);
+
+  const handleResetDirectory = useCallback(() => {
+    setHandleStack([]);
+    setEntries([]);
+    setSelectedName(null);
+    setStatus(null);
+  }, [setEntries, setHandleStack, setSelectedName, setStatus]);
+
   return (
     <StateMachine name="explorer" initial="welcome" className="app-shell">
       <State name="welcome" transition={["browse"]}>
@@ -129,6 +183,11 @@ export default function App() {
           status={status}
           onOpenEntry={handleOpenEntry}
           canRename={renameSupported}
+          onEnterDirectory={handleEnterDirectory}
+          onNavigateUp={handleNavigateUp}
+          canNavigateUp={handleStack.length > 1}
+          breadcrumbs={breadcrumbs}
+          onResetDirectory={handleResetDirectory}
         />
       </State>
       <State name="rename" transition={["browse"]}>
@@ -197,7 +256,12 @@ function BrowserState({
   selectedName,
   status,
   onOpenEntry,
-  canRename
+  canRename,
+  onEnterDirectory,
+  onNavigateUp,
+  canNavigateUp,
+  breadcrumbs,
+  onResetDirectory
 }) {
   const { query, setQuery } = useStateMachine();
 
@@ -224,10 +288,15 @@ function BrowserState({
 
   const handleSelect = useCallback(
     (entry) => {
+      if (entry.kind === "directory") {
+        setQuery({ file: null });
+        onEnterDirectory?.(entry.handle);
+        return;
+      }
       onSelectName(entry.name);
       setQuery({ file: entry.name });
     },
-    [onSelectName, setQuery]
+    [onEnterDirectory, onSelectName, setQuery]
   );
 
   const title = directoryHandle?.name ?? "Unselected";
@@ -239,12 +308,29 @@ function BrowserState({
           <div>
             <h1>{title}</h1>
             <p className="helper-text">{entries.length} item(s)</p>
+            {breadcrumbs?.length > 1 && (
+              <ol className="breadcrumbs" aria-label="Current directory">
+                {breadcrumbs.map((name, index) => (
+                  <li key={`${index}-${name}`}>{name}</li>
+                ))}
+              </ol>
+            )}
           </div>
           <div className="action-row">
+            {canNavigateUp && (
+              <button type="button" className="action-button" onClick={onNavigateUp}>
+                Up one level
+              </button>
+            )}
             <button type="button" className="action-button" onClick={onRefresh}>
               Refresh
             </button>
-            <StateLink to="welcome" className="action-button secondary-link" replace>
+            <StateLink
+              to="welcome"
+              className="action-button secondary-link"
+              replace
+              onClick={onResetDirectory}
+            >
               Choose another folder
             </StateLink>
           </div>
@@ -287,7 +373,7 @@ function BrowserState({
         {selectedEntry ? (
           <>
             <div>
-              <div className="detail-label">Selected file</div>
+              <div className="detail-label">Selected item</div>
               <h2>{selectedEntry.name}</h2>
             </div>
             <div className="detail-group">
@@ -302,7 +388,7 @@ function BrowserState({
               >
                 Open in default app
               </button>
-              {canRename ? (
+              {canRename && selectedEntry.kind === "file" ? (
                 <StateLink
                   to="rename"
                   className="action-button"
@@ -319,7 +405,7 @@ function BrowserState({
           </>
         ) : (
           <p className="helper-text">
-            Select a file from the list to view details and actions.
+            Select a file to view its details, or open a directory to browse deeper.
           </p>
         )}
       </article>
